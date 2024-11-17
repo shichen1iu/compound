@@ -9,6 +9,7 @@ use anchor_spl::{
     token_2022::Token2022,
     token_interface::Mint,
 };
+use mpl_core::accounts::BaseCollectionV1;
 #[derive(Accounts)]
 pub struct InitializeVault<'info> {
     #[account(
@@ -38,6 +39,8 @@ pub struct InitializeVault<'info> {
     )]
     /// CHECK: this account is checked by the metadatatoken program
     pub reward_mint_metadata: UncheckedAccount<'info>,
+    pub collection_a: Account<'info, BaseCollectionV1>,
+    pub collection_b: Account<'info, BaseCollectionV1>,
     #[account(mut)]
     pub payer: Signer<'info>,
     pub system_program: Program<'info, System>,
@@ -69,5 +72,13 @@ pub fn process_init_vault(ctx: Context<InitializeVault>) -> Result<()> {
         .invoke_signed(reward_mint_seed)?;
 
     msg!("reward mint address: {}", ctx.accounts.reward_mint.key());
+
+    let stake_valut = &mut ctx.accounts.stake_valut;
+    **stake_valut = StakeValut {
+        reward_mint: ctx.accounts.reward_mint.key(),
+        collection_a: ctx.accounts.collection_a.key(),
+        collection_b: ctx.accounts.collection_b.key(),
+        bump: ctx.bumps.stake_valut,
+    };
     Ok(())
 }
