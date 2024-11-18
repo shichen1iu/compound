@@ -1,7 +1,7 @@
 import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
 import { Compound } from "../target/types/compound";
-import { PublicKey } from "@solana/web3.js";
+import { PublicKey, Keypair } from "@solana/web3.js";
 import { assert } from "chai";
 describe("compound", () => {
   // Configure the client to use the local cluster.
@@ -18,15 +18,24 @@ describe("compound", () => {
     "AgzmJaNWshppdAhig9MkkakzLdvz46WorJ3m7EQPCAb9"
   );
 
+  const compoundCollection = Keypair.generate();
+
   it("Is initialized!", async () => {
     // Add your test here.
     const tx = await program.methods
-      .initVault()
+      .initVault(
+        "Gilgamesh",
+        "https://gray-managing-penguin-864.mypinata.cloud/ipfs/QmSkBvu5k5EbEVMTe9MPjRyDS1PPeW83VFBJ9pPPKG8hQV",
+        600
+      )
       .accounts({
         payer: payer.publicKey,
         collectionA,
         collectionB,
+        compoundCollection: compoundCollection.publicKey,
+        compoundCollectionUpdateAuthority: payer.publicKey,
       })
+      .signers([compoundCollection])
       .rpc();
     console.log("Your transaction signature", tx);
 
@@ -45,7 +54,12 @@ describe("compound", () => {
     const stakeValutInfo = await program.account.stakeValut.fetch(
       stakeValutAddress
     );
-    console.log(stakeValutInfo);
+    // console.log(stakeValutInfo);
+
+    console.log(
+      "compound collection address : ",
+      stakeValutInfo.compoundCollection.toString()
+    );
     assert.equal(
       stakeValutInfo.rewardMint.toString(),
       rewardMintPDA.toString()
