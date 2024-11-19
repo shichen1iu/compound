@@ -12,36 +12,33 @@ describe("compound", () => {
 
   let payer = provider.wallet;
   const collectionA = new PublicKey(
-    "BKQFp7a4XuJ1vNvLxgynEC9UTRA74V4xCyhsQEq8TQUr"
+    "2BmLWt3kos1cqcakhoyEXXET5rywA3TmCU3nPDysoSj7"
   );
   const collectionB = new PublicKey(
-    "AgzmJaNWshppdAhig9MkkakzLdvz46WorJ3m7EQPCAb9"
+    "CQRnfDn2iLnEf8oiA8Nr9HkNNwufSoNH7f4LhQtCmQwn"
   );
-
   const compoundCollection = Keypair.generate();
 
-  it("Is initialized!", async () => {
-    // Add your test here.
+  it("init vault", async () => {
     const tx = await program.methods
       .initVault(
         "Gilgamesh",
         "https://gray-managing-penguin-864.mypinata.cloud/ipfs/QmSkBvu5k5EbEVMTe9MPjRyDS1PPeW83VFBJ9pPPKG8hQV",
-        600
+        500
       )
       .accounts({
         payer: payer.publicKey,
         collectionA,
         collectionB,
         compoundCollection: compoundCollection.publicKey,
-        compoundCollectionUpdateAuthority: payer.publicKey,
       })
       .signers([compoundCollection])
       .rpc();
     console.log("Your transaction signature", tx);
 
     // 获取 stake_valut 的 PDA
-    const [stakeValutAddress] = PublicKey.findProgramAddressSync(
-      [Buffer.from("stake_valut")],
+    const [stakeVaultAddress] = PublicKey.findProgramAddressSync(
+      [Buffer.from("stake_vault")],
       program.programId
     );
 
@@ -51,20 +48,20 @@ describe("compound", () => {
       program.programId
     );
 
-    const stakeValutInfo = await program.account.stakeValut.fetch(
-      stakeValutAddress
+    const stakeVaultInfo = await program.account.stakeVault.fetch(
+      stakeVaultAddress
     );
     // console.log(stakeValutInfo);
 
     console.log(
       "compound collection address : ",
-      stakeValutInfo.compoundCollection.toString()
+      stakeVaultInfo.compoundCollection.toString()
     );
     assert.equal(
-      stakeValutInfo.rewardMint.toString(),
+      stakeVaultInfo.rewardMint.toString(),
       rewardMintPDA.toString()
     );
-    assert.equal(stakeValutInfo.collectionA.toString(), collectionA.toString());
-    assert.equal(stakeValutInfo.collectionB.toString(), collectionB.toString());
+    assert.equal(stakeVaultInfo.collectionA.toString(), collectionA.toString());
+    assert.equal(stakeVaultInfo.collectionB.toString(), collectionB.toString());
   });
 });

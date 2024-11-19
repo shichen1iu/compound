@@ -1,5 +1,5 @@
 use crate::constants::*;
-use crate::state::StakeValut;
+use crate::state::StakeVault;
 use anchor_lang::{prelude::*, solana_program::sysvar};
 use anchor_spl::{
     metadata::{
@@ -18,15 +18,16 @@ use mpl_core::{
     ID as MPL_CORE_ID,
 };
 #[derive(Accounts)]
+#[instruction(compound_collection_name: String)]
 pub struct InitVault<'info> {
     #[account(
         init,
         payer = payer,
-        space = StakeValut::LEN,
-        seeds = [STAKE_VALUT_SEED],
+        space = 8 + StakeVault::INIT_SPACE,
+        seeds = [STAKE_VAULT_SEED],
         bump
     )]
-    pub stake_valut: Account<'info, StakeValut>,
+    pub stake_vault: Account<'info, StakeVault>,
     #[account(
         init,
         payer = payer,
@@ -50,8 +51,6 @@ pub struct InitVault<'info> {
     pub collection_b: Account<'info, BaseCollectionV1>,
     #[account(mut)]
     pub compound_collection: Signer<'info>,
-    /// CHECK: this account will be checked by the mpl_core program
-    pub compound_collection_update_authority: Option<UncheckedAccount<'info>>,
     #[account(mut)]
     pub payer: Signer<'info>,
     pub system_program: Program<'info, System>,
@@ -78,12 +77,14 @@ pub fn process_init_vault(
         &compound_collection_uri,
         compound_collection_max_supply,
     )?;
-    let stake_valut = &mut ctx.accounts.stake_valut;
-    **stake_valut = StakeValut {
+
+    let stake_vault = &mut ctx.accounts.stake_vault;
+
+    **stake_vault = StakeVault {
         reward_mint: ctx.accounts.reward_mint.key(),
         collection_a: ctx.accounts.collection_a.key(),
         collection_b: ctx.accounts.collection_b.key(),
-        bump: ctx.bumps.stake_valut,
+        bump: ctx.bumps.stake_vault,
         compound_collection: ctx.accounts.compound_collection.key(),
         compound_asset_edition: 0,
         compound_collection_max_supply: compound_collection_max_supply,
@@ -120,11 +121,6 @@ fn create_compound_collection(
     compound_collection_uri: &str,
     compound_collection_max_supply: u32,
 ) -> Result<()> {
-    let update_authority = match &ctx.accounts.compound_collection_update_authority {
-        Some(update_authority) => Some(update_authority.to_account_info()),
-        None => None,
-    };
-
     let mut compound_collection_plugins: Vec<PluginAuthorityPair> = vec![];
 
     //添加版权插件
@@ -152,14 +148,16 @@ fn create_compound_collection(
     };
     compound_collection_plugins.push(master_edition_plugin);
 
+    let stake_vault_signers_seeds: &[&[&[u8]]] = &[&[STAKE_VAULT_SEED, &[ctx.bumps.stake_vault]]];
+
     CreateCollectionV2CpiBuilder::new(&ctx.accounts.mpl_core_program.to_account_info())
         .collection(&ctx.accounts.compound_collection.to_account_info())
         .payer(&ctx.accounts.payer.to_account_info())
-        .update_authority(update_authority.as_ref())
+        .update_authority(Some(&ctx.accounts.stake_vault.to_account_info()))
         .system_program(&ctx.accounts.system_program.to_account_info())
         .name(compound_collection_name.to_string())
         .uri(compound_collection_uri.to_string())
         .plugins(compound_collection_plugins)
-        .invoke()?;
+        .invoke_signed(stake_vault_signers_seeds)?;
     Ok(())
 }
