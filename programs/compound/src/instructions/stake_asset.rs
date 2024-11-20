@@ -64,6 +64,12 @@ pub fn process_stake_asset(
     let stake_details = &mut ctx.accounts.stake_details;
     let stake_vault = &mut ctx.accounts.stake_vault;
 
+    //检查stake_vault的available_ids是否为空
+    require!(
+        !stake_vault.available_ids.is_empty(),
+        CompoundError::NoAvailableIds
+    );
+
     //将nft a 转移到stake_valut
     TransferV1CpiBuilder::new(&ctx.accounts.mpl_core_program.to_account_info())
         .asset(&ctx.accounts.asset_a.to_account_info())
@@ -82,14 +88,7 @@ pub fn process_stake_asset(
         .new_owner(&stake_vault.to_account_info())
         .invoke()?;
 
-    // 获取当前的asset的edition
-    let current_edition = stake_vault.compound_asset_edition + 1;
-
-    // 检查当前的edition是否超过了compound_collection的最大供应量
-    require!(
-        current_edition <= stake_vault.compound_collection_max_supply,
-        CompoundError::MaxSupplyReached
-    );
+    let current_edition = stake_vault.available_ids.pop().unwrap();
 
     // 根据当前的edition设置compound_asset的name
     let compound_asset_name = format!("{} #{}", compound_asset_name, current_edition);
@@ -98,7 +97,7 @@ pub fn process_stake_asset(
 
     let edition_plugin = PluginAuthorityPair {
         plugin: Plugin::Edition(Edition {
-            number: current_edition,
+            number: current_edition as u32,
         }),
         authority: Some(PluginAuthority::UpdateAuthority),
     };

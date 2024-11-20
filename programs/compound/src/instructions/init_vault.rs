@@ -1,4 +1,5 @@
 use crate::constants::*;
+use crate::error::*;
 use crate::state::StakeVault;
 use anchor_lang::{prelude::*, solana_program::sysvar};
 use anchor_spl::{
@@ -27,7 +28,7 @@ pub struct InitVault<'info> {
         seeds = [STAKE_VAULT_SEED],
         bump
     )]
-    pub stake_vault: Account<'info, StakeVault>,
+    pub stake_vault: Box<Account<'info, StakeVault>>,
     #[account(
         init,
         payer = payer,
@@ -70,6 +71,11 @@ pub fn process_init_vault(
     compound_collection_uri: String,
     compound_collection_max_supply: u32,
 ) -> Result<()> {
+    require_gt!(
+        3000,
+        compound_collection_max_supply,
+        CompoundError::MaxSupplyTooLarge
+    );
     create_reward_mint(&ctx)?;
     create_compound_collection(
         &ctx,
@@ -80,15 +86,17 @@ pub fn process_init_vault(
 
     let stake_vault = &mut ctx.accounts.stake_vault;
 
-    **stake_vault = StakeVault {
-        reward_mint: ctx.accounts.reward_mint.key(),
-        collection_a: ctx.accounts.collection_a.key(),
-        collection_b: ctx.accounts.collection_b.key(),
-        bump: ctx.bumps.stake_vault,
-        compound_collection: ctx.accounts.compound_collection.key(),
-        compound_asset_edition: 0,
-        compound_collection_max_supply: compound_collection_max_supply,
-    };
+    stake_vault.bump = ctx.bumps.stake_vault;
+    stake_vault.reward_mint = ctx.accounts.reward_mint.key();
+    stake_vault.collection_a = ctx.accounts.collection_a.key();
+    stake_vault.collection_b = ctx.accounts.collection_b.key();
+    stake_vault.compound_collection = ctx.accounts.compound_collection.key();
+    stake_vault.compound_collection_max_supply = compound_collection_max_supply;
+
+    //插入1到max_supply的数字
+    for i in 1..=compound_collection_max_supply {
+        stake_vault.available_ids.push(i as u16);
+    }
 
     Ok(())
 }

@@ -8,4 +8,8 @@ pub enum CompoundError {
     MaxSupplyReached,
     #[msg("Asset does not belong to the staker")]
     StakerAssetMismatch,
+    #[msg("Max supply too large , max is 3000")]
+    MaxSupplyTooLarge,
+    #[msg("No available ids")]
+    NoAvailableIds,
 }

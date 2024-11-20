@@ -7,7 +7,7 @@ use anchor_lang::prelude::*;
 
 pub use instructions::*;
 
-declare_id!("5jTvubXW96sdGSTPqiR7wsj75SZMckNfcihaBrmtuU4q");
+declare_id!("ECSZFw8CgLxMmaNHaDJnywcHbbZhE8TRCXnxQA3LGYio");
 
 #[program]
 pub mod compound {
