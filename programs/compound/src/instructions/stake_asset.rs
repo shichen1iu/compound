@@ -2,11 +2,10 @@ use crate::constants::*;
 use crate::error::*;
 use crate::state::*;
 use anchor_lang::prelude::*;
-use mpl_core::instructions::CreateV2CpiBuilder;
 use mpl_core::{
     accounts::{BaseAssetV1, BaseCollectionV1},
-    instructions::TransferV1CpiBuilder,
-    types::UpdateAuthority,
+    instructions::{CreateV2CpiBuilder, TransferV1CpiBuilder},
+    types::{Edition, Plugin, PluginAuthority, PluginAuthorityPair, UpdateAuthority},
     ID as MPL_CORE_ID,
 };
 #[derive(Accounts)]
@@ -94,19 +93,27 @@ pub fn process_stake_asset(
     // 根据当前的edition设置compound_asset的name
     let compound_asset_name = format!("{} #{}", compound_asset_name, current_edition);
 
-    let stake_vault_signers_seeds: &[&[&[u8]]] = &[&[STAKE_VAULT_SEED, &[stake_vault.bump]]];
+    let mut compound_asset_plugin: Vec<PluginAuthorityPair> = vec![];
 
+    let edition_plugin = PluginAuthorityPair {
+        plugin: Plugin::Edition(Edition {
+            number: current_edition,
+        }),
+        authority: Some(PluginAuthority::UpdateAuthority),
+    };
+
+    compound_asset_plugin.push(edition_plugin);
     //将compound_asset mint 给staker
     CreateV2CpiBuilder::new(&ctx.accounts.mpl_core_program.to_account_info())
         .asset(&ctx.accounts.compound_asset.to_account_info())
-        .authority(Some(&ctx.accounts.stake_vault.to_account_info()))
-        .payer(&ctx.accounts.stake_vault.to_account_info())
+        .payer(&&ctx.accounts.staker.to_account_info())
         .owner(Some(&ctx.accounts.staker.to_account_info()))
-        .update_authority(Some(&ctx.accounts.compound_collection.to_account_info()))
+        .collection(Some(&ctx.accounts.compound_collection.to_account_info()))
         .system_program(&ctx.accounts.system_program.to_account_info())
+        .plugins(compound_asset_plugin)
         .name(compound_asset_name)
         .uri(compound_asset_uri)
-        .invoke_signed(stake_vault_signers_seeds)?;
+        .invoke()?;
 
     stake_details.bump = ctx.bumps.stake_details;
     stake_details.start_time = stake_start_time;

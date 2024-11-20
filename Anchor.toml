@@ -4,14 +4,14 @@
 resolution = true
 skip-lint = false
 
-[programs.localnet]
+[programs.devnet]
 compound = "5jTvubXW96sdGSTPqiR7wsj75SZMckNfcihaBrmtuU4q"
 
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "localnet"
+cluster = "https://devnet.helius-rpc.com/?api-key=47fcd2c1-bfb0-4224-8257-ce200078152a"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
