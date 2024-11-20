@@ -3,6 +3,8 @@ import { Program } from "@coral-xyz/anchor";
 import { Compound } from "../target/types/compound";
 import { PublicKey, Keypair } from "@solana/web3.js";
 import { assert } from "chai";
+import base58 from "bs58";
+
 describe("compound", () => {
   // Configure the client to use the local cluster.
   const provider = anchor.AnchorProvider.env();
@@ -17,8 +19,16 @@ describe("compound", () => {
   const collectionB = new PublicKey(
     "CQRnfDn2iLnEf8oiA8Nr9HkNNwufSoNH7f4LhQtCmQwn"
   );
-  const compoundCollection = Keypair.generate();
+  const staker = require("./staker.json");
+  const stakerKeypair = anchor.web3.Keypair.fromSecretKey(
+    new Uint8Array(base58.decode(staker.staker))
+  );
 
+  const assetA = new PublicKey("oicUPh1gVBav6bDrU8eYnLscb9MfTMxGhC849JcDG47");
+  const assetB = new PublicKey("ET7SJakh3cjb2hAmkqRUdmDPAeCQHeV1TB5XmPJm6RAp");
+
+  const compoundCollection = Keypair.generate();
+  const compoundAsset = Keypair.generate();
   it("init vault", async () => {
     const tx = await program.methods
       .initVault(
@@ -48,6 +58,8 @@ describe("compound", () => {
       program.programId
     );
 
+    console.log("reward Mint Address", rewardMintPDA.toString());
+
     const stakeVaultInfo = await program.account.stakeVault.fetch(
       stakeVaultAddress
     );
@@ -57,11 +69,58 @@ describe("compound", () => {
       "compound collection address : ",
       stakeVaultInfo.compoundCollection.toString()
     );
+
     assert.equal(
       stakeVaultInfo.rewardMint.toString(),
       rewardMintPDA.toString()
     );
     assert.equal(stakeVaultInfo.collectionA.toString(), collectionA.toString());
     assert.equal(stakeVaultInfo.collectionB.toString(), collectionB.toString());
+  });
+
+  it("stake asset", async () => {
+    const stakeAssetTx = await program.methods
+      .stakeAsset(
+        "Gilgamesh",
+        "https://gray-managing-penguin-864.mypinata.cloud/ipfs/QmSkBvu5k5EbEVMTe9MPjRyDS1PPeW83VFBJ9pPPKG8hQV"
+      )
+      .accounts({
+        assetA: assetA,
+        assetB: assetB,
+        staker: stakerKeypair.publicKey,
+        compoundAsset: compoundAsset.publicKey,
+      })
+      .signers([stakerKeypair, compoundAsset])
+      .rpc();
+    console.log("stake asset tx signature", stakeAssetTx);
+    console.log("compound asset address", compoundAsset.publicKey.toString());
+
+    const [stakeDetialsPDA] = PublicKey.findProgramAddressSync(
+      [Buffer.from("stake_details"), stakerKeypair.publicKey.toBuffer()],
+      program.programId
+    );
+
+    const stakeDetialsInfo = await program.account.stakeDetails.fetch(
+      stakeDetialsPDA
+    );
+
+    let assert_a_currency = stakeDetialsInfo.assetACurrency;
+    let assert_b_currency = stakeDetialsInfo.assetBCurrency;
+    console.log("assert_a_currency", assert_a_currency);
+    console.log("assert_b_currency", assert_b_currency);
+    console.log("stake start time", stakeDetialsInfo.startTime);
+
+    try {
+      assert.equal(
+        stakeDetialsInfo.compoundAsset.toString(),
+        compoundAsset.publicKey.toString()
+      );
+    } catch (error) {
+      console.error("Error comparing compound asset addresses:", error);
+      throw error;
+    }
+
+    assert.equal(stakeDetialsInfo.assetA.toString(), assetA.toString());
+    assert.equal(stakeDetialsInfo.assetB.toString(), assetB.toString());
   });
 });

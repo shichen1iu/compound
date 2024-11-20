@@ -26,4 +26,12 @@ pub mod compound {
             compound_collection_max_supply,
         )
     }
+
+    pub fn stake_asset(
+        ctx: Context<StakeAsset>,
+        compound_asset_name: String,
+        compound_asset_uri: String,
+    ) -> Result<()> {
+        process_stake_asset(ctx, compound_asset_name, compound_asset_uri)
+    }
 }

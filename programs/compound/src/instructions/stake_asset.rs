@@ -15,7 +15,7 @@ pub struct StakeAsset<'info> {
         seeds = [STAKE_DETAILS_SEED, staker.key().as_ref()],
         bump,
         payer = staker,
-        space = StakeDetails::INIT_SPACE,
+        space = 8 + StakeDetails::INIT_SPACE,
     )]
     pub stake_details: Account<'info, StakeDetails>,
     #[account(
@@ -24,13 +24,26 @@ pub struct StakeAsset<'info> {
         bump = stake_vault.bump,
         has_one = collection_a,
         has_one = collection_b,
+        has_one = compound_collection,
     )]
     pub stake_vault: Account<'info, StakeVault>,
     pub collection_a: Account<'info, BaseCollectionV1>,
     pub collection_b: Account<'info, BaseCollectionV1>,
+    #[account(
+        mut,
+        constraint = asset_a.owner == staker.key() @ CompoundError::StakerAssetMismatch,
+        constraint = asset_a.update_authority == UpdateAuthority::Collection(collection_a.key()) @ CompoundError::UnknownAsset
+    )]
     pub asset_a: Account<'info, BaseAssetV1>,
+    #[account(
+        mut,
+        constraint = asset_b.owner == staker.key() @ CompoundError::StakerAssetMismatch,
+        constraint = asset_b.update_authority == UpdateAuthority::Collection(collection_b.key()) @ CompoundError::UnknownAsset
+    )]
     pub asset_b: Account<'info, BaseAssetV1>,
+    #[account(mut)]
     pub compound_collection: Account<'info, BaseCollectionV1>,
+    #[account(mut)]
     pub compound_asset: Signer<'info>,
     pub system_program: Program<'info, System>,
     #[account(mut)]
@@ -45,18 +58,6 @@ pub fn process_stake_asset(
     compound_asset_name: String,
     compound_asset_uri: String,
 ) -> Result<()> {
-    require!(
-        ctx.accounts.asset_a.update_authority
-            == UpdateAuthority::Collection(ctx.accounts.stake_vault.collection_a),
-        CompoundError::UnknownAsset
-    );
-
-    require!(
-        ctx.accounts.asset_b.update_authority
-            == UpdateAuthority::Collection(ctx.accounts.stake_vault.collection_b),
-        CompoundError::UnknownAsset
-    );
-
     let stake_start_time = Clock::get()?.unix_timestamp;
     let collection_a = &ctx.accounts.collection_a;
     let collection_b = &ctx.accounts.collection_b;
@@ -102,6 +103,8 @@ pub fn process_stake_asset(
         authority: Some(PluginAuthority::UpdateAuthority),
     };
 
+    let stake_valut_seeds: &[&[&[u8]]] = &[&[STAKE_VAULT_SEED, &[stake_vault.bump]]];
+
     compound_asset_plugin.push(edition_plugin);
     //将compound_asset mint 给staker
     CreateV2CpiBuilder::new(&ctx.accounts.mpl_core_program.to_account_info())
@@ -113,10 +116,14 @@ pub fn process_stake_asset(
         .plugins(compound_asset_plugin)
         .name(compound_asset_name)
         .uri(compound_asset_uri)
-        .invoke()?;
+        .authority(Some(&ctx.accounts.stake_vault.to_account_info()))
+        .invoke_signed(stake_valut_seeds)?;
 
     stake_details.bump = ctx.bumps.stake_details;
     stake_details.start_time = stake_start_time;
+    stake_details.compound_asset = ctx.accounts.compound_asset.key();
+    stake_details.asset_a = ctx.accounts.asset_a.key();
+    stake_details.asset_b = ctx.accounts.asset_b.key();
     stake_details.asset_a_currency = collection_a.current_size;
     stake_details.asset_b_currency = collection_b.current_size;
     Ok(())

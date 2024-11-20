@@ -6,4 +6,6 @@ pub enum CompoundError {
     UnknownAsset,
     #[msg("Max supply reached")]
     MaxSupplyReached,
+    #[msg("Asset does not belong to the staker")]
+    StakerAssetMismatch,
 }
