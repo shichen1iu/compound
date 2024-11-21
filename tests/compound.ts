@@ -128,4 +128,15 @@ describe("compound", () => {
     assert.equal(stakeDetialsInfo.assetA.toString(), assetA.toString());
     assert.equal(stakeDetialsInfo.assetB.toString(), assetB.toString());
   });
+
+  it("unstake asset", async () => {
+    const unstakeAssetTx = await program.methods
+      .unstakeAsset()
+      .accounts({
+        staker: stakerKeypair.publicKey,
+      })
+      .signers([stakerKeypair])
+      .rpc();
+    console.log("unstake asset tx signature", unstakeAssetTx);
+  });
 });

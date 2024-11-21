@@ -2,19 +2,18 @@ use crate::constants::*;
 use crate::error::*;
 use crate::state::*;
 use crate::utils::calculate_rewards;
-use anchor_lang::prelude::*;
-use anchor_lang::solana_program::sysvar;
-use anchor_spl::metadata::mpl_token_metadata::instructions::MintV1CpiBuilder;
-use anchor_spl::metadata::Metadata;
+use anchor_lang::{prelude::*, solana_program::sysvar};
 use anchor_spl::{
     associated_token::AssociatedToken,
+    metadata::{mpl_token_metadata::instructions::MintV1CpiBuilder, Metadata},
     token_2022::Token2022,
     token_interface::{Mint, TokenAccount},
 };
-use mpl_core::accounts::BaseAssetV1;
-use mpl_core::accounts::BaseCollectionV1;
-use mpl_core::instructions::{BurnV1CpiBuilder, TransferV1CpiBuilder};
-use mpl_core::ID as MPL_CORE_ID;
+use mpl_core::{
+    accounts::{BaseAssetV1, BaseCollectionV1},
+    instructions::{BurnV1CpiBuilder, TransferV1CpiBuilder},
+    ID as MPL_CORE_ID,
+};
 
 #[derive(Accounts)]
 pub struct UnstakeAsset<'info> {
@@ -96,9 +95,15 @@ pub fn process_unstake_asset(ctx: Context<UnstakeAsset>) -> Result<()> {
 
     let stake_time = stake_end_time - stake_start_time;
 
+    require!(stake_details.is_staked, CompoundError::NotStaked);
+
     require_gt!(stake_time, MIN_STAKE_TIME, CompoundError::StakeTimeTooShort);
 
-    let reward_amount = calculate_rewards(stake_time)?;
+    let asset_a_currency = stake_details.asset_a_currency;
+    let asset_b_currency = stake_details.asset_b_currency;
+
+    let reward_amount =
+        calculate_rewards(stake_time, asset_a_currency as u64, asset_b_currency as u64)?;
 
     let stake_vaults_seeds: &[&[&[u8]]] = &[&[STAKE_VAULT_SEED, &[ctx.accounts.stake_vault.bump]]];
 
@@ -139,6 +144,10 @@ pub fn process_unstake_asset(ctx: Context<UnstakeAsset>) -> Result<()> {
         .payer(&ctx.accounts.staker.to_account_info())
         .authority(Some(&&ctx.accounts.staker.to_account_info()))
         .invoke()?;
+
+    let compound_asset_id = stake_details.compound_id;
+    let stake_vault = &mut ctx.accounts.stake_vault;
+    stake_vault.available_ids.push(compound_asset_id);
 
     Ok(())
 }

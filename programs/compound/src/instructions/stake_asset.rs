@@ -66,7 +66,6 @@ pub fn process_stake_asset(
     let stake_start_time = Clock::get()?.unix_timestamp;
     let collection_a = &ctx.accounts.collection_a;
     let collection_b = &ctx.accounts.collection_b;
-    let stake_details = &mut ctx.accounts.stake_details;
     let stake_vault = &mut ctx.accounts.stake_vault;
 
     //检查stake_vault的available_ids是否为空
@@ -93,16 +92,17 @@ pub fn process_stake_asset(
         .new_owner(&stake_vault.to_account_info())
         .invoke()?;
 
-    let current_edition = stake_vault.available_ids.pop().unwrap();
+    //从stake_vault的available_ids中取出当前的id
+    let compound_asset_id = stake_vault.available_ids.pop().unwrap();
 
     // 根据当前的edition设置compound_asset的name
-    let compound_asset_name = format!("{} #{}", compound_asset_name, current_edition);
+    let compound_asset_name = format!("{} #{}", compound_asset_name, compound_asset_id);
 
     let mut compound_asset_plugin: Vec<PluginAuthorityPair> = vec![];
 
     let edition_plugin = PluginAuthorityPair {
         plugin: Plugin::Edition(Edition {
-            number: current_edition as u32,
+            number: compound_asset_id as u32,
         }),
         authority: Some(PluginAuthority::UpdateAuthority),
     };
@@ -113,7 +113,7 @@ pub fn process_stake_asset(
     //将compound_asset mint 给staker
     CreateV2CpiBuilder::new(&ctx.accounts.mpl_core_program.to_account_info())
         .asset(&ctx.accounts.compound_asset.to_account_info())
-        .payer(&&ctx.accounts.staker.to_account_info())
+        .payer(&ctx.accounts.staker.to_account_info())
         .owner(Some(&ctx.accounts.staker.to_account_info()))
         .collection(Some(&ctx.accounts.compound_collection.to_account_info()))
         .system_program(&ctx.accounts.system_program.to_account_info())
@@ -123,14 +123,17 @@ pub fn process_stake_asset(
         .authority(Some(&ctx.accounts.stake_vault.to_account_info()))
         .invoke_signed(stake_valut_seeds)?;
 
-    stake_details.bump = ctx.bumps.stake_details;
-    stake_details.start_time = stake_start_time;
-    stake_details.compound_asset = ctx.accounts.compound_asset.key();
-    stake_details.asset_a = ctx.accounts.asset_a.key();
-    stake_details.asset_b = ctx.accounts.asset_b.key();
-    stake_details.compound_id = current_edition;
-    stake_details.asset_a_currency = collection_a.current_size;
-    stake_details.asset_b_currency = collection_b.current_size;
-    stake_details.is_staked = true;
+    *ctx.accounts.stake_details = StakeDetails{
+        bump: ctx.bumps.stake_details,
+        start_time: stake_start_time,
+        asset_a: ctx.accounts.asset_a.key(),
+        asset_b: ctx.accounts.asset_b.key(),
+        asset_a_currency: collection_a.current_size,
+        asset_b_currency: collection_b.current_size,
+        compound_id: compound_asset_id,
+        compound_collection: ctx.accounts.compound_collection.key(),
+        compound_asset: ctx.accounts.compound_asset.key(),
+        is_staked: true,
+    };
     Ok(())
 }

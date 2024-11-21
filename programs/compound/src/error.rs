@@ -16,4 +16,6 @@ pub enum CompoundError {
     StakeTimeTooShort,
     #[msg("Arithmetic overflow")]
     ArithmeticOverflow,
+    #[msg("Not staked")]
+    NotStaked,
 }

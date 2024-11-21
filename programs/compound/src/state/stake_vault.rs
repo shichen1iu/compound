@@ -11,5 +11,4 @@ pub struct StakeVault {
     pub compound_collection_max_supply: u32,
     #[max_len(3000)]
     pub available_ids: Vec<u16>,
-    pub base_daily_reward: u64,
 }

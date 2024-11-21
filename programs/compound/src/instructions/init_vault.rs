@@ -92,10 +92,11 @@ pub fn process_init_vault(
     stake_vault.collection_b = ctx.accounts.collection_b.key();
     stake_vault.compound_collection = ctx.accounts.compound_collection.key();
     stake_vault.compound_collection_max_supply = compound_collection_max_supply;
+
     // 使用 rev() 从max_supply到1小插入
-    for i in (1..=compound_collection_max_supply).rev() {
-        stake_vault.available_ids.push(i as u16);
-    }
+    stake_vault
+        .available_ids
+        .extend((1..=compound_collection_max_supply).rev().map(|i| i as u16));
 
     Ok(())
 }
@@ -106,9 +107,9 @@ fn create_reward_mint(ctx: &Context<InitVault>) -> Result<()> {
     CreateV1CpiBuilder::new(&ctx.accounts.metadata_program.to_account_info())
         .metadata(&ctx.accounts.reward_mint_metadata.to_account_info())
         .mint(&ctx.accounts.reward_mint.to_account_info(), false)
-        .authority(&ctx.accounts.reward_mint.to_account_info())
-        .payer(&&ctx.accounts.payer.to_account_info())
-        .update_authority(&ctx.accounts.reward_mint.to_account_info(), true)
+        .authority(&ctx.accounts.stake_vault.to_account_info())
+        .payer(&ctx.accounts.payer.to_account_info())
+        .update_authority(&ctx.accounts.stake_vault.to_account_info(), true)
         .spl_token_program(Some(&ctx.accounts.token_program.to_account_info()))
         .system_program(&ctx.accounts.system_program.to_account_info())
         .sysvar_instructions(&ctx.accounts.sysvar_instructions.to_account_info())
@@ -167,6 +168,5 @@ fn create_compound_collection(
         .plugins(compound_collection_plugins)
         .invoke_signed(stake_vault_signers_seeds)?;
 
-    
     Ok(())
 }

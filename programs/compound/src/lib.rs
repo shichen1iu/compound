@@ -35,4 +35,8 @@ pub mod compound {
     ) -> Result<()> {
         process_stake_asset(ctx, compound_asset_name, compound_asset_uri)
     }
+
+    pub fn unstake_asset(ctx: Context<UnstakeAsset>) -> Result<()> {
+        process_unstake_asset(ctx)
+    }
 }
