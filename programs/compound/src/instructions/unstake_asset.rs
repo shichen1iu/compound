@@ -36,8 +36,7 @@ pub struct UnstakeAsset<'info> {
         ],
         bump = stake_details.bump,
         has_one = compound_asset,
-        has_one = asset_a,
-        has_one = asset_b,
+        close = staker
     )]
     pub stake_details: Account<'info, StakeDetails>,
     #[account(
@@ -89,6 +88,14 @@ pub struct UnstakeAsset<'info> {
 }
 
 pub fn process_unstake_asset(ctx: Context<UnstakeAsset>) -> Result<()> {
+    require!(
+        ctx.accounts.stake_details.asset_a == ctx.accounts.asset_a.key(),
+        CompoundError::InvalidAsset
+    );
+    require!(
+        ctx.accounts.stake_details.asset_b == ctx.accounts.asset_b.key(),
+        CompoundError::InvalidAsset
+    );
     let stake_end_time = Clock::get()?.unix_timestamp;
     let stake_details = &mut ctx.accounts.stake_details;
     let stake_start_time = stake_details.start_time;

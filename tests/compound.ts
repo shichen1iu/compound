@@ -134,6 +134,8 @@ describe("compound", () => {
       .unstakeAsset()
       .accounts({
         staker: stakerKeypair.publicKey,
+        assetA: assetA,
+        assetB: assetB,
       })
       .signers([stakerKeypair])
       .rpc();

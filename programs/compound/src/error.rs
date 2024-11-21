@@ -18,4 +18,6 @@ pub enum CompoundError {
     ArithmeticOverflow,
     #[msg("Not staked")]
     NotStaked,
+    #[msg("Invalid asset")]
+    InvalidAsset,
 }

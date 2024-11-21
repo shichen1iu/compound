@@ -102,7 +102,7 @@ pub fn process_init_vault(
 }
 
 fn create_reward_mint(ctx: &Context<InitVault>) -> Result<()> {
-    let reward_mint_seed: &[&[&[u8]]] = &[&[REWARD_MINT_SEED, &[ctx.bumps.reward_mint]]];
+    let stake_vault_seeds: &[&[&[u8]]] = &[&[STAKE_VAULT_SEED, &[ctx.bumps.stake_vault]]];
 
     CreateV1CpiBuilder::new(&ctx.accounts.metadata_program.to_account_info())
         .metadata(&ctx.accounts.reward_mint_metadata.to_account_info())
@@ -119,7 +119,7 @@ fn create_reward_mint(ctx: &Context<InitVault>) -> Result<()> {
         .seller_fee_basis_points(0)
         .is_mutable(true)
         .uri("https://gray-managing-penguin-864.mypinata.cloud/ipfs/QmZeZtp39Nv4z4CP4fjvZLgH6wB4kULrv8ytxRcqc8rSJa".to_string())
-        .invoke_signed(reward_mint_seed)?;
+        .invoke_signed(stake_vault_seeds)?;
     Ok(())
 }
 
