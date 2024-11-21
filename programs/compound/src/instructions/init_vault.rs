@@ -35,8 +35,8 @@ pub struct InitVault<'info> {
         seeds = [REWARD_MINT_SEED],
         bump,
         mint::decimals = 9,
-        mint::authority = reward_mint,
-        mint::freeze_authority = reward_mint,
+        mint::authority = stake_vault,
+        mint::freeze_authority = stake_vault,
         mint::token_program = token_program,
     )]
     pub reward_mint: InterfaceAccount<'info, Mint>,
@@ -92,9 +92,8 @@ pub fn process_init_vault(
     stake_vault.collection_b = ctx.accounts.collection_b.key();
     stake_vault.compound_collection = ctx.accounts.compound_collection.key();
     stake_vault.compound_collection_max_supply = compound_collection_max_supply;
-
-    //插入1到max_supply的数字
-    for i in 1..=compound_collection_max_supply {
+    // 使用 rev() 从max_supply到1小插入
+    for i in (1..=compound_collection_max_supply).rev() {
         stake_vault.available_ids.push(i as u16);
     }
 
@@ -167,5 +166,7 @@ fn create_compound_collection(
         .uri(compound_collection_uri.to_string())
         .plugins(compound_collection_plugins)
         .invoke_signed(stake_vault_signers_seeds)?;
+
+    
     Ok(())
 }

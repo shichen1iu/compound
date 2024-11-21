@@ -12,4 +12,8 @@ pub enum CompoundError {
     MaxSupplyTooLarge,
     #[msg("No available ids")]
     NoAvailableIds,
+    #[msg("Stake time should be greater than 7 days")]
+    StakeTimeTooShort,
+    #[msg("Arithmetic overflow")]
+    ArithmeticOverflow,
 }

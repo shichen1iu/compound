@@ -12,7 +12,12 @@ use mpl_core::{
 pub struct StakeAsset<'info> {
     #[account(
         init,
-        seeds = [STAKE_DETAILS_SEED, staker.key().as_ref()],
+        seeds = [
+            STAKE_DETAILS_SEED, 
+            staker.key().as_ref(), 
+            asset_a.key().as_ref(),
+            asset_b.key().as_ref()
+        ],
         bump,
         payer = staker,
         space = 8 + StakeDetails::INIT_SPACE,
@@ -123,7 +128,9 @@ pub fn process_stake_asset(
     stake_details.compound_asset = ctx.accounts.compound_asset.key();
     stake_details.asset_a = ctx.accounts.asset_a.key();
     stake_details.asset_b = ctx.accounts.asset_b.key();
+    stake_details.compound_id = current_edition;
     stake_details.asset_a_currency = collection_a.current_size;
     stake_details.asset_b_currency = collection_b.current_size;
+    stake_details.is_staked = true;
     Ok(())
 }

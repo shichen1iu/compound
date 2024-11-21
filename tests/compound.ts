@@ -96,7 +96,12 @@ describe("compound", () => {
     console.log("compound asset address", compoundAsset.publicKey.toString());
 
     const [stakeDetialsPDA] = PublicKey.findProgramAddressSync(
-      [Buffer.from("stake_details"), stakerKeypair.publicKey.toBuffer()],
+      [
+        Buffer.from("stake_details"),
+        stakerKeypair.publicKey.toBuffer(),
+        assetA.toBuffer(),
+        assetB.toBuffer(),
+      ],
       program.programId
     );
 
