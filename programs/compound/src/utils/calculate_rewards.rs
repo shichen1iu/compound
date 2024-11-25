@@ -1,13 +1,13 @@
 use crate::constants::*;
 use crate::error::*;
+use anchor_lang::prelude::*;
 
 pub fn calculate_rewards(
     stake_time: i64,
     asset_a_currency: u64,
     asset_b_currency: u64,
-) -> Result<u64, CompoundError> {
+) -> Result<u64> {
     let days = stake_time / (24 * 60 * 60);
-
     // 计算时间奖励系数
     let mut time_multiplier: u64 = 100;
     const REWARD_MULTIPLIERS: [(i64, u64); 4] = [
@@ -49,5 +49,6 @@ pub fn calculate_rewards(
         .checked_div(100)
         .ok_or(CompoundError::ArithmeticOverflow)?
         .checked_div(24 * 60 * 60)
-        .ok_or(CompoundError::ArithmeticOverflow)
+        .ok_or(CompoundError::ArithmeticOverflow)?;
+    Ok(BASE_DAILY_REWARD)
 }
