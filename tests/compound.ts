@@ -1,7 +1,12 @@
 import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
 import { Compound } from "../target/types/compound";
-import { PublicKey, Keypair } from "@solana/web3.js";
+import {
+  PublicKey,
+  Keypair,
+  Transaction,
+  ComputeBudgetProgram,
+} from "@solana/web3.js";
 import { assert } from "chai";
 import base58 from "bs58";
 
@@ -138,7 +143,17 @@ describe("compound", () => {
         assetB: assetB,
       })
       .signers([stakerKeypair])
-      .rpc();
+      .instruction();
+
+    const unStakeAssetIx = new Transaction()
+      .add(unstakeAssetTx)
+      .add(ComputeBudgetProgram.setComputeUnitLimit({ units: 230_000 }));
+
+    await anchor.web3.sendAndConfirmTransaction(
+      provider.connection,
+      unStakeAssetIx,
+      [stakerKeypair]
+    );
     console.log("unstake asset tx signature", unstakeAssetTx);
   });
 });
