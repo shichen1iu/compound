@@ -65,6 +65,7 @@ pub fn process_init_vault(ctx: Context<InitVault>) -> Result<()> {
         .invoke_signed(vault_seeds)?;
 
     let vault = &mut ctx.accounts.vault;
+
     **vault = Vault {
         bump: ctx.bumps.vault,
         pool_num: 0,

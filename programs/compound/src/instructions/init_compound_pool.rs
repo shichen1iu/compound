@@ -58,64 +58,13 @@ pub fn process_init_compound_pool(
     compound_collection_uri: String,
     compound_collection_max_supply: u32,
 ) -> Result<()> {
+    //compound_collection_max_supply 不能大于3000
     require_gt!(
         3000,
         compound_collection_max_supply,
         CompoundError::MaxSupplyTooLarge
     );
-    create_reward_mint(&ctx)?;
-    create_compound_collection(
-        &ctx,
-        &compound_collection_name,
-        &compound_collection_uri,
-        compound_collection_max_supply,
-    )?;
 
-    let stake_vault = &mut ctx.accounts.stake_vault;
-
-    stake_vault.bump = ctx.bumps.stake_vault;
-    stake_vault.reward_mint = ctx.accounts.reward_mint.key();
-    stake_vault.collection_a = ctx.accounts.collection_a.key();
-    stake_vault.collection_b = ctx.accounts.collection_b.key();
-    stake_vault.compound_collection = ctx.accounts.compound_collection.key();
-    stake_vault.compound_collection_max_supply = compound_collection_max_supply;
-
-    // 使用 rev() 从max_supply到1小插入
-    stake_vault
-        .available_ids
-        .extend((1..=compound_collection_max_supply).rev().map(|i| i as u16));
-
-    Ok(())
-}
-
-fn create_reward_mint(ctx: &Context<InitVault>) -> Result<()> {
-    let stake_vault_seeds: &[&[&[u8]]] = &[&[STAKE_VAULT_SEED, &[ctx.bumps.stake_vault]]];
-
-    CreateV1CpiBuilder::new(&ctx.accounts.metadata_program.to_account_info())
-        .metadata(&ctx.accounts.reward_mint_metadata.to_account_info())
-        .mint(&ctx.accounts.reward_mint.to_account_info(), false)
-        .authority(&ctx.accounts.stake_vault.to_account_info())
-        .payer(&ctx.accounts.payer.to_account_info())
-        .update_authority(&ctx.accounts.stake_vault.to_account_info(), true)
-        .spl_token_program(Some(&ctx.accounts.token_program.to_account_info()))
-        .system_program(&ctx.accounts.system_program.to_account_info())
-        .sysvar_instructions(&ctx.accounts.sysvar_instructions.to_account_info())
-        .token_standard(TokenStandard::Fungible)
-        .name(String::from("Compound Go"))
-        .symbol(String::from("CPG"))
-        .seller_fee_basis_points(0)
-        .is_mutable(true)
-        .uri("https://gray-managing-penguin-864.mypinata.cloud/ipfs/QmZeZtp39Nv4z4CP4fjvZLgH6wB4kULrv8ytxRcqc8rSJa".to_string())
-        .invoke_signed(stake_vault_seeds)?;
-    Ok(())
-}
-
-fn create_compound_collection(
-    ctx: &Context<InitCompoundPool>,
-    compound_collection_name: &str,
-    compound_collection_uri: &str,
-    compound_collection_max_supply: u32,
-) -> Result<()> {
     let mut compound_collection_plugins: Vec<PluginAuthorityPair> = vec![];
 
     //添加版权插件
@@ -154,6 +103,22 @@ fn create_compound_collection(
         .uri(compound_collection_uri.to_string())
         .plugins(compound_collection_plugins)
         .invoke_signed(vault_signers_seeds)?;
+
+    let compound_pool = &mut ctx.accounts.compound_pool;
+    let vault = &mut ctx.accounts.vault;
+
+    compound_pool.bump = ctx.bumps.compound_pool;
+    compound_pool.collection_a = ctx.accounts.collection_a.key();
+    compound_pool.collection_b = ctx.accounts.collection_b.key();
+    compound_pool.compound_collection = ctx.accounts.compound_collection.key();
+    compound_pool.compound_collection_max_supply = compound_collection_max_supply;
+
+    // 使用 rev() 从max_supply到1小插入
+    compound_pool
+        .available_ids
+        .extend((1..=compound_collection_max_supply).rev().map(|i| i as u16));
+
+    vault.pool_num += 1;
 
     Ok(())
 }
