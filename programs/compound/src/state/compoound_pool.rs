@@ -7,7 +7,10 @@ pub struct CompoundPool {
     pub collection_a: Pubkey,
     pub collection_b: Pubkey,
     pub compound_collection: Pubkey,
-    pub compound_collection_max_supply: u32,
+    pub compound_collection_currency: u16,
+    pub collection_a_currency: u16,
+    pub collection_b_currency: u16,
+    pub stake_daily_reward_amount: u16,
     #[max_len(3000)]
     pub available_ids: Vec<u16>,
 }

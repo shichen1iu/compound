@@ -1,10 +1,14 @@
 use crate::constants::*;
 use crate::state::*;
-use anchor_lang::prelude::*;
-use anchor_lang::solana_program::sysvar;
-use anchor_spl::metadata::mpl_token_metadata::instructions::CreateV1CpiBuilder;
-use anchor_spl::metadata::mpl_token_metadata::types::TokenStandard;
-use anchor_spl::{metadata::Metadata, token_2022::Token2022, token_interface::Mint};
+use anchor_lang::{prelude::*, solana_program::sysvar};
+use anchor_spl::{
+    metadata::{
+        mpl_token_metadata::{instructions::CreateV1CpiBuilder, types::TokenStandard},
+        Metadata,
+    },
+    token_2022::Token2022,
+    token_interface::Mint,
+};
 #[derive(Accounts)]
 pub struct InitVault<'info> {
     #[account(
@@ -64,9 +68,7 @@ pub fn process_init_vault(ctx: Context<InitVault>) -> Result<()> {
         .uri("https://gray-managing-penguin-864.mypinata.cloud/ipfs/QmZeZtp39Nv4z4CP4fjvZLgH6wB4kULrv8ytxRcqc8rSJa".to_string())
         .invoke_signed(vault_seeds)?;
 
-    let vault = &mut ctx.accounts.vault;
-
-    **vault = Vault {
+    *ctx.accounts.vault = Vault {
         bump: ctx.bumps.vault,
         pool_num: 0,
         reward_mint: ctx.accounts.reward_mint.key(),

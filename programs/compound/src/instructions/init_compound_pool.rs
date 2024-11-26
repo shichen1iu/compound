@@ -1,15 +1,7 @@
 use crate::constants::*;
 use crate::error::*;
 use crate::state::*;
-use anchor_lang::{prelude::*, solana_program::sysvar};
-use anchor_spl::{
-    metadata::{
-        mpl_token_metadata::{instructions::CreateV1CpiBuilder, types::TokenStandard},
-        Metadata,
-    },
-    token_2022::Token2022,
-    token_interface::Mint,
-};
+use anchor_lang::prelude::*;
 use mpl_core::{
     accounts::BaseCollectionV1,
     instructions::CreateCollectionV2CpiBuilder,
@@ -42,11 +34,6 @@ pub struct InitCompoundPool<'info> {
     #[account(mut)]
     pub payer: Signer<'info>,
     pub system_program: Program<'info, System>,
-    pub token_program: Program<'info, Token2022>,
-    pub metadata_program: Program<'info, Metadata>,
-    #[account(address = sysvar::instructions::id())]
-    /// CHECK: Instruction ssysvar account
-    pub sysvar_instructions: UncheckedAccount<'info>,
     #[account(address = MPL_CORE_ID)]
     /// CHECK: this account is checked by the address constraint
     pub mpl_core_program: UncheckedAccount<'info>,
@@ -56,12 +43,15 @@ pub fn process_init_compound_pool(
     ctx: Context<InitCompoundPool>,
     compound_collection_name: String,
     compound_collection_uri: String,
-    compound_collection_max_supply: u32,
+    compound_collection_currency: u16,
+    collection_a_currency: u16,
+    collection_b_currency: u16,
+    stake_daily_reward_amount: u16,
 ) -> Result<()> {
     //compound_collection_max_supply 不能大于3000
     require_gt!(
         3000,
-        compound_collection_max_supply,
+        compound_collection_currency,
         CompoundError::MaxSupplyTooLarge
     );
 
@@ -84,7 +74,7 @@ pub fn process_init_compound_pool(
     //添加Master Edition插件
     let master_edition_plugin = PluginAuthorityPair {
         plugin: Plugin::MasterEdition(MasterEdition {
-            max_supply: Some(compound_collection_max_supply),
+            max_supply: Some(compound_collection_currency as u32),
             name: Some(compound_collection_name.to_string()),
             uri: Some(compound_collection_uri.to_string()),
         }),
@@ -104,19 +94,23 @@ pub fn process_init_compound_pool(
         .plugins(compound_collection_plugins)
         .invoke_signed(vault_signers_seeds)?;
 
-    let compound_pool = &mut ctx.accounts.compound_pool;
     let vault = &mut ctx.accounts.vault;
 
-    compound_pool.bump = ctx.bumps.compound_pool;
-    compound_pool.collection_a = ctx.accounts.collection_a.key();
-    compound_pool.collection_b = ctx.accounts.collection_b.key();
-    compound_pool.compound_collection = ctx.accounts.compound_collection.key();
-    compound_pool.compound_collection_max_supply = compound_collection_max_supply;
-
+    let mut ids: Vec<u16> = vec![];
     // 使用 rev() 从max_supply到1小插入
-    compound_pool
-        .available_ids
-        .extend((1..=compound_collection_max_supply).rev().map(|i| i as u16));
+    ids.extend((1..=compound_collection_currency).rev().map(|i| i as u16));
+
+    **ctx.accounts.compound_pool = CompoundPool {
+        bump: ctx.bumps.compound_pool,
+        collection_a: ctx.accounts.collection_a.key(),
+        collection_b: ctx.accounts.collection_b.key(),
+        compound_collection: ctx.accounts.compound_collection.key(),
+        compound_collection_currency: compound_collection_currency,
+        collection_a_currency: collection_a_currency,
+        collection_b_currency: collection_b_currency,
+        stake_daily_reward_amount: stake_daily_reward_amount,
+        available_ids: ids,
+    };
 
     vault.pool_num += 1;
 

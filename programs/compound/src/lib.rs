@@ -14,17 +14,27 @@ declare_id!("4N2LDvF4R6idwYbZaRJSmVfoTSQGhBisBLY9kZJZ2x8H");
 pub mod compound {
     use super::*;
 
-    pub fn init_vault(
-        ctx: Context<InitVault>,
+    pub fn init_vault(ctx: Context<InitVault>) -> Result<()> {
+        process_init_vault(ctx)
+    }
+
+    pub fn init_compound_pool(
+        ctx: Context<InitCompoundPool>,
         compound_collection_name: String,
         compound_collection_uri: String,
-        compound_collection_max_supply: u32,
+        compound_collection_currency: u16,
+        collection_a_currency: u16,
+        collection_b_currency: u16,
+        stake_daily_reward_amount: u16,
     ) -> Result<()> {
-        process_init_vault(
+        process_init_compound_pool(
             ctx,
             compound_collection_name,
             compound_collection_uri,
-            compound_collection_max_supply,
+            compound_collection_currency,
+            collection_a_currency,
+            collection_b_currency,
+            stake_daily_reward_amount,
         )
     }
 
@@ -32,16 +42,8 @@ pub mod compound {
         ctx: Context<StakeAsset>,
         compound_asset_name: String,
         compound_asset_uri: String,
-        asset_a_total_currency: u32,
-        asset_b_total_currency: u32,
     ) -> Result<()> {
-        process_stake_asset(
-            ctx,
-            compound_asset_name,
-            compound_asset_uri,
-            asset_a_total_currency,
-            asset_b_total_currency,
-        )
+        process_stake_asset(ctx, compound_asset_name, compound_asset_uri)
     }
 
     pub fn unstake_asset(ctx: Context<UnstakeAsset>) -> Result<()> {

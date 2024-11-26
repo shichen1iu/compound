@@ -19,13 +19,20 @@ use mpl_core::{
 pub struct UnstakeAsset<'info> {
     #[account(
         mut,
-        seeds = [STAKE_VAULT_SEED],
-        bump = stake_vault.bump,
+        seeds = [VAULT_SEED],
+        bump = vault.bump,
+        has_one = reward_mint,
+    )]
+    pub vault: Account<'info, Vault>,
+    #[account(
+        mut,
+        seeds = [COMPOUND_POOL_SEED],
+        bump = compound_pool.bump,
         has_one = collection_a,
         has_one = collection_b,
         has_one = compound_collection,
     )]
-    pub stake_vault: Box<Account<'info, StakeVault>>,
+    pub compound_pool: Box<Account<'info, CompoundPool>>,
     #[account(
         mut,
         seeds = [
@@ -39,11 +46,7 @@ pub struct UnstakeAsset<'info> {
         close = staker
     )]
     pub stake_details: Account<'info, StakeDetails>,
-    #[account(
-        mut,
-        seeds = [REWARD_MINT_SEED],
-        bump
-    )]
+    #[account(mut)]
     pub reward_mint: InterfaceAccount<'info, Mint>,
     #[account(
         mut,
@@ -110,45 +113,45 @@ pub fn process_unstake_asset(ctx: Context<UnstakeAsset>) -> Result<()> {
 
     require_gt!(stake_time, MIN_STAKE_TIME, CompoundError::StakeTimeTooShort);
 
-    let asset_a_currency = stake_details.asset_a_currency;
-    let asset_b_currency = stake_details.asset_b_currency;
+    let asset_a_currency = ctx.accounts.compound_pool.collection_a_currency;
+    let asset_b_currency = ctx.accounts.compound_pool.collection_b_currency;
 
     let reward_amount =
         calculate_rewards(stake_time, asset_a_currency as u64, asset_b_currency as u64)?;
 
-    let stake_vaults_seeds: &[&[&[u8]]] = &[&[STAKE_VAULT_SEED, &[ctx.accounts.stake_vault.bump]]];
+    let vault_seeds: &[&[&[u8]]] = &[&[VAULT_SEED, &[ctx.accounts.vault.bump]]];
 
     // 铸造奖励token给staker
     MintV1CpiBuilder::new(&ctx.accounts.metadata_program.to_account_info())
         .token(&ctx.accounts.reward_mint_ata.to_account_info())
         .metadata(&ctx.accounts.reward_mint_metadata.to_account_info())
         .mint(&ctx.accounts.reward_mint.to_account_info())
-        .authority(&ctx.accounts.stake_vault.to_account_info())
+        .authority(&ctx.accounts.vault.to_account_info())
         .payer(&ctx.accounts.staker.to_account_info())
         .system_program(&ctx.accounts.system_program.to_account_info())
         .sysvar_instructions(&ctx.accounts.sysvar_instructions.to_account_info())
         .spl_token_program(&ctx.accounts.token_program.to_account_info())
         .spl_ata_program(&ctx.accounts.associated_token_program.to_account_info())
         .amount(reward_amount)
-        .invoke_signed(stake_vaults_seeds)?;
+        .invoke_signed(vault_seeds)?;
 
     // 将nft a 转移给staker
     TransferV1CpiBuilder::new(&ctx.accounts.mpl_core_program.to_account_info())
         .asset(&ctx.accounts.asset_a.to_account_info())
         .payer(&ctx.accounts.staker.to_account_info())
         .collection(Some(&ctx.accounts.collection_a.to_account_info()))
-        .authority(Some(&ctx.accounts.stake_vault.to_account_info()))
+        .authority(Some(&ctx.accounts.vault.to_account_info()))
         .new_owner(&ctx.accounts.staker.to_account_info())
-        .invoke_signed(stake_vaults_seeds)?;
+        .invoke_signed(vault_seeds)?;
 
     // 将nft b 转移给staker
     TransferV1CpiBuilder::new(&ctx.accounts.mpl_core_program.to_account_info())
         .asset(&ctx.accounts.asset_b.to_account_info())
         .payer(&ctx.accounts.staker.to_account_info())
         .collection(Some(&ctx.accounts.collection_b.to_account_info()))
-        .authority(Some(&ctx.accounts.stake_vault.to_account_info()))
+        .authority(Some(&ctx.accounts.vault.to_account_info()))
         .new_owner(&ctx.accounts.staker.to_account_info())
-        .invoke_signed(stake_vaults_seeds)?;
+        .invoke_signed(vault_seeds)?;
 
     // 销毁compound_asset
     BurnV1CpiBuilder::new(&ctx.accounts.mpl_core_program.to_account_info())
@@ -158,9 +161,9 @@ pub fn process_unstake_asset(ctx: Context<UnstakeAsset>) -> Result<()> {
         .authority(Some(&&ctx.accounts.staker.to_account_info()))
         .invoke()?;
 
-    let compound_asset_id = stake_details.compound_id;
-    let stake_vault = &mut ctx.accounts.stake_vault;
-    stake_vault.available_ids.push(compound_asset_id);
+    let compound_asset_id = stake_details.compound_asset_id;
+    let compound_pool = &mut ctx.accounts.compound_pool;
+    compound_pool.available_ids.push(compound_asset_id);
 
     Ok(())
 }

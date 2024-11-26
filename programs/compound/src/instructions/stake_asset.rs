@@ -2,6 +2,7 @@ use crate::constants::*;
 use crate::error::*;
 use crate::state::*;
 use anchor_lang::prelude::*;
+use anchor_spl::token_interface::Mint;
 use mpl_core::{
     accounts::{BaseAssetV1, BaseCollectionV1},
     instructions::{CreateV2CpiBuilder, TransferV1CpiBuilder},
@@ -10,6 +11,13 @@ use mpl_core::{
 };
 #[derive(Accounts)]
 pub struct StakeAsset<'info> {
+    #[account(
+        mut,
+        seeds = [VAULT_SEED],
+        bump = vault.bump,
+        has_one = reward_mint,
+    )]
+    pub vault: Account<'info, Vault>,
     #[account(
         init,
         seeds = [
@@ -25,15 +33,16 @@ pub struct StakeAsset<'info> {
     pub stake_details: Account<'info, StakeDetails>,
     #[account(
         mut,
-        seeds = [STAKE_VAULT_SEED],
-        bump = stake_vault.bump,
+        seeds = [COMPOUND_POOL_SEED],
+        bump = compound_pool.bump,
         has_one = collection_a,
         has_one = collection_b,
         has_one = compound_collection,
     )]
-    pub stake_vault: Account<'info, StakeVault>,
+    pub compound_pool: Account<'info, CompoundPool>,
     pub collection_a: Account<'info, BaseCollectionV1>,
     pub collection_b: Account<'info, BaseCollectionV1>,
+    pub reward_mint: InterfaceAccount<'info, Mint>,
     #[account(
         mut,
         constraint = asset_a.owner == staker.key() @ CompoundError::StakerAssetMismatch,
@@ -62,17 +71,16 @@ pub fn process_stake_asset(
     ctx: Context<StakeAsset>,
     compound_asset_name: String,
     compound_asset_uri: String,
-    asset_a_total_currency: u32,
-    asset_b_total_currency: u32,
 ) -> Result<()> {
     let stake_start_time = Clock::get()?.unix_timestamp;
     let collection_a = &ctx.accounts.collection_a;
     let collection_b = &ctx.accounts.collection_b;
-    let stake_vault = &mut ctx.accounts.stake_vault;
+    let compound_pool = &mut ctx.accounts.compound_pool;
+    let vault = &mut ctx.accounts.vault;
 
     //检查stake_vault的available_ids是否为空
     require!(
-        !stake_vault.available_ids.is_empty(),
+        !compound_pool.available_ids.is_empty(),
         CompoundError::NoAvailableIds
     );
 
@@ -82,7 +90,7 @@ pub fn process_stake_asset(
         .collection(Some(&collection_a.to_account_info()))
         .payer(&ctx.accounts.staker.to_account_info())
         .authority(Some(&ctx.accounts.staker.to_account_info()))
-        .new_owner(&stake_vault.to_account_info())
+        .new_owner(&vault.to_account_info())
         .invoke()?;
 
     //将nft b 转移到stake_valut
@@ -91,11 +99,11 @@ pub fn process_stake_asset(
         .collection(Some(&collection_b.to_account_info()))
         .payer(&ctx.accounts.staker.to_account_info())
         .authority(Some(&ctx.accounts.staker.to_account_info()))
-        .new_owner(&stake_vault.to_account_info())
+        .new_owner(&vault.to_account_info())
         .invoke()?;
 
     //从stake_vault的available_ids中取出当前的id
-    let compound_asset_id = stake_vault.available_ids.pop().unwrap();
+    let compound_asset_id = compound_pool.available_ids.pop().unwrap();
 
     // 根据当前的edition设置compound_asset的name
     let compound_asset_name = format!("{} #{}", compound_asset_name, compound_asset_id);
@@ -109,7 +117,7 @@ pub fn process_stake_asset(
         authority: Some(PluginAuthority::UpdateAuthority),
     };
 
-    let stake_valut_seeds: &[&[&[u8]]] = &[&[STAKE_VAULT_SEED, &[stake_vault.bump]]];
+    let vault_seeds: &[&[&[u8]]] = &[&[VAULT_SEED, &[vault.bump]]];
 
     compound_asset_plugin.push(edition_plugin);
     //将compound_asset mint 给staker
@@ -122,20 +130,18 @@ pub fn process_stake_asset(
         .plugins(compound_asset_plugin)
         .name(compound_asset_name)
         .uri(compound_asset_uri)
-        .authority(Some(&ctx.accounts.stake_vault.to_account_info()))
-        .invoke_signed(stake_valut_seeds)?;
+        .authority(Some(&ctx.accounts.vault.to_account_info()))
+        .invoke_signed(vault_seeds)?;
 
     *ctx.accounts.stake_details = StakeDetails{
         bump: ctx.bumps.stake_details,
         start_time: stake_start_time,
         asset_a: ctx.accounts.asset_a.key(),
         asset_b: ctx.accounts.asset_b.key(),
-        asset_a_currency: asset_a_total_currency,
-        asset_b_currency: asset_b_total_currency,
-        compound_id: compound_asset_id,
-        compound_collection: ctx.accounts.compound_collection.key(),
+        compound_asset_id: compound_asset_id,
         compound_asset: ctx.accounts.compound_asset.key(),
         is_staked: true,
     };
+    
     Ok(())
 }

@@ -19,13 +19,10 @@ use mpl_core::ID as MPL_CORE_ID;
 pub struct PermuteAsset<'info> {
     #[account(
         mut,
-        seeds = [STAKE_VAULT_SEED],
-        bump = stake_vault.bump,
-        has_one = collection_a,
-        has_one = collection_b,
-        has_one = compound_collection,
+        seeds = [VAULT_SEED],
+        bump = vault.bump,
     )]
-    pub stake_vault: Box<Account<'info, StakeVault>>,
+    pub vault: Account<'info, Vault>,
     #[account(
         mut,
         constraint = permute_asset.owner == owner.key() @ CompoundError::InvalidAsset,
@@ -40,12 +37,6 @@ pub struct PermuteAsset<'info> {
         bump
     )]
     pub reward_mint: InterfaceAccount<'info, Mint>,
-    #[account(
-        mut,
-        seeds = [ STAKE_VAULT_SEED ],
-        bump = stake_vault.bump
-    )]
-    pub stake_vault: Account<'info, StakeVault>,
     #[account(
         mut,
         seeds = [b"metadata",metadata_program.key().as_ref(), reward_mint.key().as_ref()],
@@ -109,21 +100,21 @@ pub fn process_permute_asset(
 
     let permute_amount = calculate_permute_amount(permute_asset_total_currency)?;
 
-    let stake_vaults_seeds: &[&[&[u8]]] = [&STAKE_VAULT_SEED.as_ref(), &[ctx.bumps]];
+    let vault_seeds: &[&[&[u8]]] = &[&[VAULT_SEED, &[ctx.accounts.vault.bump]]];
 
     // 铸造奖励token给staker
     MintV1CpiBuilder::new(&ctx.accounts.metadata_program.to_account_info())
         .token(&ctx.accounts.permute_mint_ata.to_account_info())
         .metadata(&ctx.accounts.reward_mint_metadata.to_account_info())
         .mint(&ctx.accounts.reward_mint.to_account_info())
-        .authority(&ctx.accounts.stake_vault.to_account_info())
+        .authority(&ctx.accounts.vault.to_account_info())
         .payer(&ctx.accounts.owner.to_account_info())
         .system_program(&ctx.accounts.system_program.to_account_info())
         .sysvar_instructions(&ctx.accounts.sysvar_instructions.to_account_info())
         .spl_token_program(&ctx.accounts.token_program.to_account_info())
         .spl_ata_program(&ctx.accounts.associated_token_program.to_account_info())
         .amount(permute_amount)
-        .invoke_signed(stake_vaults_seeds)?;
+        .invoke_signed(vault_seeds)?;
 
     Ok(())
 }

@@ -135,6 +135,15 @@ describe("compound", () => {
         "https://gray-managing-penguin-864.mypinata.cloud/ipfs/QmSkBvu5k5EbEVMTe9MPjRyDS1PPeW83VFBJ9pPPKG8hQV",
         500
       )
+  })
+
+  it("init compound pool", async () => {
+    const tx = await program.methods
+      .initVault(
+        "Gilgamesh",
+        "https://gray-managing-penguin-864.mypinata.cloud/ipfs/QmSkBvu5k5EbEVMTe9MPjRyDS1PPeW83VFBJ9pPPKG8hQV",
+        500
+      )
       .accounts({
         payer: payer.publicKey,
         collectionA: collectionAPublicKey,
