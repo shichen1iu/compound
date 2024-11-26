@@ -188,7 +188,9 @@ describe("compound", () => {
     const stakeAssetTx = await program.methods
       .stakeAsset(
         "Gilgamesh",
-        "https://gray-managing-penguin-864.mypinata.cloud/ipfs/QmSkBvu5k5EbEVMTe9MPjRyDS1PPeW83VFBJ9pPPKG8hQV"
+        "https://gray-managing-penguin-864.mypinata.cloud/ipfs/QmSkBvu5k5EbEVMTe9MPjRyDS1PPeW83VFBJ9pPPKG8hQV",
+        1000,
+        1500
       )
       .accounts({
         assetA: assetAPublicKey,
@@ -273,17 +275,6 @@ describe("compound", () => {
           })
           .signers([stakerKeypair])
           .rpc();
-        const blockhashContext = await connection.getLatestBlockhash();
-
-        // let unstakeAssetTx = new Transaction({
-        // }).add(unstakeAssetIx);
-        // .add(ComputeBudgetProgram.setComputeUnitLimit({ units: 230_000 }))
-        // .add(ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 1 }));
-        // await sendAndConfirmTransaction(
-        //   connection,
-        //   unstakeAssetTx,
-        //   [stakerKeypair, payer]
-        // );
         console.log("unstake asset tx signature", unstakeAssetTx);
       });
     });

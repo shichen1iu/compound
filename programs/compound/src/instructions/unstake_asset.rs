@@ -88,12 +88,6 @@ pub struct UnstakeAsset<'info> {
 }
 
 pub fn process_unstake_asset(ctx: Context<UnstakeAsset>) -> Result<()> {
-    msg!("Staker: {}", ctx.accounts.staker.key());
-    msg!("Asset A: {}", ctx.accounts.asset_a.key());
-    msg!("Asset B: {}", ctx.accounts.asset_b.key());
-    msg!("Compound Asset: {}", ctx.accounts.compound_asset.key());
-    msg!("Stake Details: {}", ctx.accounts.stake_details.key());
-    msg!("Stake Vault: {}", ctx.accounts.stake_vault.key());
     require_eq!(
         ctx.accounts.stake_details.asset_a,
         ctx.accounts.asset_a.key(),
@@ -114,11 +108,6 @@ pub fn process_unstake_asset(ctx: Context<UnstakeAsset>) -> Result<()> {
 
     require!(stake_details.is_staked, CompoundError::NotStaked);
 
-    msg!("stake_start_time: {}", stake_start_time);
-    msg!("stake_end_time: {}", stake_end_time);
-    msg!("stake_time: {}", stake_time);
-
-    
     require_gt!(stake_time, MIN_STAKE_TIME, CompoundError::StakeTimeTooShort);
 
     let asset_a_currency = stake_details.asset_a_currency;
@@ -126,8 +115,6 @@ pub fn process_unstake_asset(ctx: Context<UnstakeAsset>) -> Result<()> {
 
     let reward_amount =
         calculate_rewards(stake_time, asset_a_currency as u64, asset_b_currency as u64)?;
-
-    msg!("reward_amount: {}", reward_amount);
 
     let stake_vaults_seeds: &[&[&[u8]]] = &[&[STAKE_VAULT_SEED, &[ctx.accounts.stake_vault.bump]]];
 
@@ -174,15 +161,6 @@ pub fn process_unstake_asset(ctx: Context<UnstakeAsset>) -> Result<()> {
     let compound_asset_id = stake_details.compound_id;
     let stake_vault = &mut ctx.accounts.stake_vault;
     stake_vault.available_ids.push(compound_asset_id);
-
-    msg!(
-        "Stake Details stored compound_asset: {}",
-        ctx.accounts.stake_details.compound_asset
-    );
-    msg!(
-        "Provided compound_asset: {}",
-        ctx.accounts.compound_asset.key()
-    );
 
     Ok(())
 }

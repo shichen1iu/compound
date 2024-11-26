@@ -39,7 +39,7 @@ pub fn calculate_rewards(
     };
 
     // 计算最终奖励
-    BASE_DAILY_REWARD
+    let daily_reward = BASE_DAILY_REWARD
         .checked_mul(time_multiplier)
         .ok_or(CompoundError::ArithmeticOverflow)?
         .checked_mul(circulation_multiplier)
@@ -50,5 +50,5 @@ pub fn calculate_rewards(
         .ok_or(CompoundError::ArithmeticOverflow)?
         .checked_div(24 * 60 * 60)
         .ok_or(CompoundError::ArithmeticOverflow)?;
-    Ok(BASE_DAILY_REWARD)
+    Ok(daily_reward)
 }

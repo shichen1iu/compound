@@ -4,3 +4,5 @@ pub mod stake_asset;
 pub use stake_asset::*;
 pub mod unstake_asset;
 pub use unstake_asset::*;
+pub mod permute_asset;
+pub use permute_asset::*;

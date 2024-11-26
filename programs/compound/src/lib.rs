@@ -32,8 +32,16 @@ pub mod compound {
         ctx: Context<StakeAsset>,
         compound_asset_name: String,
         compound_asset_uri: String,
+        asset_a_total_currency: u32,
+        asset_b_total_currency: u32,
     ) -> Result<()> {
-        process_stake_asset(ctx, compound_asset_name, compound_asset_uri)
+        process_stake_asset(
+            ctx,
+            compound_asset_name,
+            compound_asset_uri,
+            asset_a_total_currency,
+            asset_b_total_currency,
+        )
     }
 
     pub fn unstake_asset(ctx: Context<UnstakeAsset>) -> Result<()> {

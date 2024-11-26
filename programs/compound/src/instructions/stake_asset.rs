@@ -62,6 +62,8 @@ pub fn process_stake_asset(
     ctx: Context<StakeAsset>,
     compound_asset_name: String,
     compound_asset_uri: String,
+    asset_a_total_currency: u32,
+    asset_b_total_currency: u32,
 ) -> Result<()> {
     let stake_start_time = Clock::get()?.unix_timestamp;
     let collection_a = &ctx.accounts.collection_a;
@@ -128,8 +130,8 @@ pub fn process_stake_asset(
         start_time: stake_start_time,
         asset_a: ctx.accounts.asset_a.key(),
         asset_b: ctx.accounts.asset_b.key(),
-        asset_a_currency: collection_a.current_size,
-        asset_b_currency: collection_b.current_size,
+        asset_a_currency: asset_a_total_currency,
+        asset_b_currency: asset_b_total_currency,
         compound_id: compound_asset_id,
         compound_collection: ctx.accounts.compound_collection.key(),
         compound_asset: ctx.accounts.compound_asset.key(),

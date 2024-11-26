@@ -20,4 +20,10 @@ pub enum CompoundError {
     NotStaked,
     #[msg("Invalid asset")]
     InvalidAsset,
+    #[msg(
+        "Permute asset current currency too high ,It must be less than 2/3 of the total currency"
+    )]
+    PermuteAssetCurrentCurrencyTooHigh,
+    #[msg("Permute asset too early , it must be at least 30 days")]
+    PermuteAssetTooEarly,
 }
