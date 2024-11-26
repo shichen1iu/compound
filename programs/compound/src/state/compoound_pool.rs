@@ -2,9 +2,8 @@ use anchor_lang::prelude::*;
 
 #[account]
 #[derive(InitSpace)]
-pub struct StakeVault {
+pub struct CompoundPool {
     pub bump: u8,
-    pub reward_mint: Pubkey,
     pub collection_a: Pubkey,
     pub collection_b: Pubkey,
     pub compound_collection: Pubkey,
