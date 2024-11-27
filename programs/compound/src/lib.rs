@@ -42,8 +42,8 @@ pub mod compound {
         process_stake_asset(ctx)
     }
 
-    pub fn unstake(ctx: Context<Unstake>) -> Result<()> {
-        process_unstake(ctx)
+    pub fn unstake_asset(ctx: Context<UnstakeAsset>) -> Result<()> {
+        process_unstake_asset(ctx)
     }
 
     pub fn permute_asset(

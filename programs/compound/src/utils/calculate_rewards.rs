@@ -6,6 +6,7 @@ pub fn calculate_rewards(
     stake_time: i64,
     asset_a_currency: u64,
     asset_b_currency: u64,
+    stake_daily_reward_amount: u64,
 ) -> Result<u64> {
     let days = stake_time / (24 * 60 * 60);
     // 计算时间奖励系数
@@ -39,7 +40,7 @@ pub fn calculate_rewards(
     };
 
     // 计算最终奖励
-    let daily_reward = BASE_DAILY_REWARD
+    let daily_reward = stake_daily_reward_amount
         .checked_mul(time_multiplier)
         .ok_or(CompoundError::ArithmeticOverflow)?
         .checked_mul(circulation_multiplier)

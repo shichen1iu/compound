@@ -9,9 +9,9 @@ pub struct CompoundPool {
     pub compound_collection: Pubkey,
     pub compound_collection_currency: u16,
     #[max_len(10)]
-    pub compound_name: String,
+    pub compound_asset_name: String,
     #[max_len(50)]
-    pub compound_uri: String,
+    pub compound_asset_uri: String,
     pub collection_a_currency: u16,
     pub collection_b_currency: u16,
     pub stake_daily_reward_amount: u64,

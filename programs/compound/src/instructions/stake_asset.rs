@@ -104,8 +104,8 @@ pub fn process_stake_asset(
     let compound_asset_id = compound_pool.available_ids.pop().unwrap();
 
     // 根据当前的edition设置compound_asset的name
-    let compound_asset_name = format!("{} #{}", compound_pool.compound_name, compound_asset_id);
-    let compound_asset_uri = compound_pool.compound_uri.clone();
+    let compound_asset_name = format!("{} #{}", compound_pool.compound_asset_name, compound_asset_id);
+    let compound_asset_uri = compound_pool.compound_asset_uri.clone();
 
     let mut compound_asset_plugin: Vec<PluginAuthorityPair> = vec![];
 

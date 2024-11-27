@@ -16,7 +16,7 @@ use mpl_core::{
 };
 
 #[derive(Accounts)]
-pub struct Unstake<'info> {
+pub struct UnstakeAsset<'info> {
     #[account(
         mut,
         seeds = [VAULT_SEED],
@@ -90,7 +90,7 @@ pub struct Unstake<'info> {
     pub mpl_core_program: UncheckedAccount<'info>,
 }
 
-pub fn process_unstake(ctx: Context<Unstake>) -> Result<()> {
+pub fn process_unstake_asset(ctx: Context<UnstakeAsset>) -> Result<()> {
     require_eq!(
         ctx.accounts.stake_details.asset_a,
         ctx.accounts.asset_a.key(),
@@ -116,8 +116,12 @@ pub fn process_unstake(ctx: Context<Unstake>) -> Result<()> {
     let asset_a_currency = ctx.accounts.compound_pool.collection_a_currency;
     let asset_b_currency = ctx.accounts.compound_pool.collection_b_currency;
 
-    let reward_amount =
-        calculate_rewards(stake_time, asset_a_currency as u64, asset_b_currency as u64)?;
+    let reward_amount = calculate_rewards(
+        stake_time,
+        asset_a_currency as u64,
+        asset_b_currency as u64,
+        ctx.accounts.compound_pool.stake_daily_reward_amount,
+    )?;
 
     let vault_seeds: &[&[&[u8]]] = &[&[VAULT_SEED, &[ctx.accounts.vault.bump]]];
 
