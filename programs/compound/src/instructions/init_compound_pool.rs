@@ -46,7 +46,7 @@ pub fn process_init_compound_pool(
     compound_collection_currency: u16,
     collection_a_currency: u16,
     collection_b_currency: u16,
-    stake_daily_reward_amount: u16,
+    stake_daily_reward_amount: u64,
 ) -> Result<()> {
     //compound_collection_max_supply 不能大于3000
     require_gt!(
@@ -106,6 +106,8 @@ pub fn process_init_compound_pool(
         collection_b: ctx.accounts.collection_b.key(),
         compound_collection: ctx.accounts.compound_collection.key(),
         compound_collection_currency: compound_collection_currency,
+        compound_name: compound_collection_name,
+        compound_uri: compound_collection_uri,
         collection_a_currency: collection_a_currency,
         collection_b_currency: collection_b_currency,
         stake_daily_reward_amount: stake_daily_reward_amount,

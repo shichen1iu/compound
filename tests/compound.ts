@@ -1,5 +1,5 @@
 import * as anchor from "@coral-xyz/anchor";
-import { Program, setProvider } from "@coral-xyz/anchor";
+import { BN, Program, setProvider } from "@coral-xyz/anchor";
 import { Compound } from "../target/types/compound";
 import {
   PublicKey,
@@ -7,7 +7,6 @@ import {
   Connection,
   Transaction,
   ComputeBudgetProgram,
-  sendAndConfirmTransaction,
 } from "@solana/web3.js";
 import { assert } from "chai";
 import { BankrunProvider } from "anchor-bankrun";
@@ -108,14 +107,9 @@ describe("compound", () => {
       programId: mplTokenMetadataProgramId,
     };
 
-    const compoundProgram: AddedProgram = {
-      name: "compound",
-      programId: compoundProgramID,
-    };
-
     context = await startAnchor(
       "",
-      [mplCoreProgram, mplTokenMetadataProgram, compoundProgram],
+      [mplCoreProgram, mplTokenMetadataProgram],
       [collectionA, collectionB, assetA, assetB, stakerAccount]
     );
     client = context.banksClient;
@@ -130,19 +124,40 @@ describe("compound", () => {
 
   it("init vault", async () => {
     const tx = await program.methods
-      .initVault(
-        "Gilgamesh",
-        "https://gray-managing-penguin-864.mypinata.cloud/ipfs/QmSkBvu5k5EbEVMTe9MPjRyDS1PPeW83VFBJ9pPPKG8hQV",
-        500
-      )
-  })
+      .initVault()
+      .accounts({
+        payer: payer.publicKey,
+      })
+      .signers([payer])
+      .rpc();
+    console.log("init vault transaction signature", tx);
+
+    const [rewardMintPDA] = PublicKey.findProgramAddressSync(
+      [Buffer.from("reward_mint")],
+      program.programId
+    );
+    console.log("reward mint address", rewardMintPDA.toString());
+
+    const [vaultPDA] = PublicKey.findProgramAddressSync(
+      [Buffer.from("vault")],
+      program.programId
+    );
+
+    const vaultInfo = await program.account.vault.fetch(vaultPDA);
+
+    assert.equal(vaultInfo.rewardMint.toString(), rewardMintPDA.toString());
+    assert.equal(vaultInfo.poolNum, 0);
+  });
 
   it("init compound pool", async () => {
     const tx = await program.methods
-      .initVault(
+      .initCompoundPool(
         "Gilgamesh",
         "https://gray-managing-penguin-864.mypinata.cloud/ipfs/QmSkBvu5k5EbEVMTe9MPjRyDS1PPeW83VFBJ9pPPKG8hQV",
-        500
+        500,
+        1000,
+        1500,
+        new BN(100_000_000) // 每天奖励0.1CPG
       )
       .accounts({
         payer: payer.publicKey,
@@ -154,53 +169,51 @@ describe("compound", () => {
       .rpc();
     console.log("init vault transaction signature", tx);
 
-    // 获取 stake_valut 的 PDA
-    const [stakeVaultAddress] = PublicKey.findProgramAddressSync(
-      [Buffer.from("stake_vault")],
+    const [compoundPoolPDA] = PublicKey.findProgramAddressSync(
+      [Buffer.from("compound_pool")],
       program.programId
     );
 
-    // 获取 reward_mint 的 PDA
-    const [rewardMintPDA] = PublicKey.findProgramAddressSync(
-      [Buffer.from("reward_mint")], // 假设 REWARD_MINT_SEED = "reward_mint"
-      program.programId
-    );
-
-    console.log("reward Mint Address", rewardMintPDA.toString());
-
-    const stakeVaultInfo = await program.account.stakeVault.fetch(
-      stakeVaultAddress
-    );
-    // console.log(stakeValutInfo);
-
-    console.log(
-      "compound collection address : ",
-      stakeVaultInfo.compoundCollection.toString()
+    const compoundPoolInfo = await program.account.compoundPool.fetch(
+      compoundPoolPDA
     );
 
     assert.equal(
-      stakeVaultInfo.rewardMint.toString(),
-      rewardMintPDA.toString()
+      compoundPoolInfo.compoundCollection.toString(),
+      compoundCollection.publicKey.toString()
     );
+
     assert.equal(
-      stakeVaultInfo.collectionA.toString(),
+      compoundPoolInfo.collectionA.toString(),
       collectionAPublicKey.toString()
     );
     assert.equal(
-      stakeVaultInfo.collectionB.toString(),
+      compoundPoolInfo.collectionB.toString(),
       collectionBPublicKey.toString()
     );
+    assert.equal(
+      compoundPoolInfo.stakeDailyRewardAmount.toString(),
+      new BN(100_000_000).toString()
+    );
+    assert.equal(compoundPoolInfo.availableIds.length, 500);
+    assert.equal(compoundPoolInfo.compoundCollectionCurrency, 500);
+    assert.equal(compoundPoolInfo.collectionACurrency, 1000);
+    assert.equal(compoundPoolInfo.collectionBCurrency, 1500);
+
+    const [vaultPDA] = PublicKey.findProgramAddressSync(
+      [Buffer.from("vault")],
+      program.programId
+    );
+
+    const vaultInfo = await program.account.vault.fetch(vaultPDA);
+
+    assert.equal(vaultInfo.poolNum, 1);
   });
 
   it("stake asset", async () => {
     console.log("staker keypair", stakerKeypair.publicKey.toString());
     const stakeAssetTx = await program.methods
-      .stakeAsset(
-        "Gilgamesh",
-        "https://gray-managing-penguin-864.mypinata.cloud/ipfs/QmSkBvu5k5EbEVMTe9MPjRyDS1PPeW83VFBJ9pPPKG8hQV",
-        1000,
-        1500
-      )
+      .stakeAsset()
       .accounts({
         assetA: assetAPublicKey,
         assetB: assetBPublicKey,
@@ -209,6 +222,7 @@ describe("compound", () => {
       })
       .signers([stakerKeypair, compoundAsset])
       .rpc();
+
     console.log("stake asset tx signature", stakeAssetTx);
     console.log("compound asset address", compoundAsset.publicKey.toString());
 
@@ -228,21 +242,12 @@ describe("compound", () => {
       stakeDetailsPDA
     );
 
-    let assert_a_currency = stakeDetialsInfo.assetACurrency;
-    let assert_b_currency = stakeDetialsInfo.assetBCurrency;
-    console.log("assert_a_currency", assert_a_currency);
-    console.log("assert_b_currency", assert_b_currency);
     console.log("stake start time", stakeDetialsInfo.startTime);
 
-    try {
-      assert.equal(
-        stakeDetialsInfo.compoundAsset.toString(),
-        compoundAsset.publicKey.toString()
-      );
-    } catch (error) {
-      console.error("Error comparing compound asset addresses:", error);
-      throw error;
-    }
+    assert.equal(
+      stakeDetialsInfo.compoundAsset.toString(),
+      compoundAsset.publicKey.toString()
+    );
 
     assert.equal(
       stakeDetialsInfo.assetA.toString(),
@@ -256,7 +261,7 @@ describe("compound", () => {
     console.log("stakeDetialsInfo.assetB", stakeDetialsInfo.assetB.toString());
   });
 
-  describe("unstake asset", () => {
+  describe("unstake asset", async () => {
     // 第一种情况：质押时间少于7天
     describe("when unstake time is less than 7 days", () => {
       before(async () => {
@@ -276,7 +281,7 @@ describe("compound", () => {
 
       it("should fail to unstake after 5 days", async () => {
         const unstakeAssetTx = await program.methods
-          .unstakeAsset()
+          .unstake()
           .accounts({
             staker: stakerKeypair.publicKey,
             assetA: assetAPublicKey,
@@ -317,36 +322,8 @@ describe("compound", () => {
             program.programId
           );
 
-        console.log("stake_details address", stakeDetailsPDA.toString());
-        console.log("stake_details bump", stakeDetailsPDA_Bump);
-
-        try {
-          // 检查账户是否存在
-          const accountInfo = await program.provider.connection.getAccountInfo(
-            stakeDetailsPDA
-          );
-          console.log("Stake Details Account exists:", !!accountInfo);
-
-          if (accountInfo) {
-            // 如果账户存在，获取账户数据
-            const stakeDetails = await program.account.stakeDetails.fetch(
-              stakeDetailsPDA
-            );
-            console.log("Stake Details data:", {
-              bump: stakeDetails.bump,
-              startTime: stakeDetails.startTime.toString(),
-              assetA: stakeDetails.assetA.toString(),
-              assetB: stakeDetails.assetB.toString(),
-              compoundAsset: stakeDetails.compoundAsset.toString(),
-              isStaked: stakeDetails.isStaked,
-            });
-          }
-        } catch (e) {
-          console.error("Error checking stake details account:", e);
-        }
-
         const unstakeAssetIx = await program.methods
-          .unstakeAsset()
+          .unstake()
           .accounts({
             staker: stakerKeypair.publicKey,
             assetA: assetAPublicKey,
@@ -354,25 +331,37 @@ describe("compound", () => {
           })
           .signers([stakerKeypair])
           .instruction();
-        const blockhashContext = await connection.getLatestBlockhash();
 
-        let unstakeAssetTx = new Transaction({
-          blockhash: blockhashContext.blockhash,
-          lastValidBlockHeight: blockhashContext.lastValidBlockHeight,
-        })
+        let unstakeAssetTx = new Transaction();
+        unstakeAssetTx.recentBlockhash = context.lastBlockhash;
+        unstakeAssetTx
           .add(unstakeAssetIx)
-          .add(ComputeBudgetProgram.setComputeUnitLimit({ units: 230_000 }));
+          .add(ComputeBudgetProgram.setComputeUnitLimit({ units: 230_000 }))
+          .sign(stakerKeypair);
 
-        await sendAndConfirmTransaction(
-          connection,
-          unstakeAssetTx,
-          [stakerKeypair],
-          {
-            commitment: "confirmed",
-          }
+        const simRes = await client.simulateTransaction(unstakeAssetTx);
+        const Transactionmeta = await client.processTransaction(unstakeAssetTx);
+
+        const assetAInfo = await program.account.baseAssetV1.fetch(
+          assetAPublicKey
         );
-        console.log("unstake asset tx signature", unstakeAssetTx);
+        console.log("assetAInfo owner:", assetAInfo.owner.toString());
       });
+    });
+
+    it("permute asset", async () => {
+      let currentClock = await client.getClock();
+      let permuteAssetCreateTime =
+        currentClock.epochStartTimestamp - BigInt(40 * 24 * 60 * 60);
+      const permuteAssetTx = await program.methods
+        .permuteAsset(1000, new BN(permuteAssetCreateTime.toString()))
+        .accounts({
+          permuteAsset: assetAPublicKey,
+          permuteAssetCollection: collectionAPublicKey,
+          owner: stakerKeypair.publicKey,
+        })
+        .signers([stakerKeypair])
+        .rpc();
     });
   });
 });

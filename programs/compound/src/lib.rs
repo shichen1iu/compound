@@ -25,7 +25,7 @@ pub mod compound {
         compound_collection_currency: u16,
         collection_a_currency: u16,
         collection_b_currency: u16,
-        stake_daily_reward_amount: u16,
+        stake_daily_reward_amount: u64,
     ) -> Result<()> {
         process_init_compound_pool(
             ctx,
@@ -38,15 +38,19 @@ pub mod compound {
         )
     }
 
-    pub fn stake_asset(
-        ctx: Context<StakeAsset>,
-        compound_asset_name: String,
-        compound_asset_uri: String,
-    ) -> Result<()> {
-        process_stake_asset(ctx, compound_asset_name, compound_asset_uri)
+    pub fn stake_asset(ctx: Context<StakeAsset>) -> Result<()> {
+        process_stake_asset(ctx)
     }
 
-    pub fn unstake_asset(ctx: Context<UnstakeAsset>) -> Result<()> {
-        process_unstake_asset(ctx)
+    pub fn unstake(ctx: Context<Unstake>) -> Result<()> {
+        process_unstake(ctx)
+    }
+
+    pub fn permute_asset(
+        ctx: Context<PermuteAsset>,
+        permute_asset_total_currency: u32,
+        create_time: i64,
+    ) -> Result<()> {
+        process_permute_asset(ctx, permute_asset_total_currency, create_time)
     }
 }

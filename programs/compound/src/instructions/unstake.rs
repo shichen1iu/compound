@@ -16,7 +16,7 @@ use mpl_core::{
 };
 
 #[derive(Accounts)]
-pub struct UnstakeAsset<'info> {
+pub struct Unstake<'info> {
     #[account(
         mut,
         seeds = [VAULT_SEED],
@@ -90,7 +90,7 @@ pub struct UnstakeAsset<'info> {
     pub mpl_core_program: UncheckedAccount<'info>,
 }
 
-pub fn process_unstake_asset(ctx: Context<UnstakeAsset>) -> Result<()> {
+pub fn process_unstake(ctx: Context<Unstake>) -> Result<()> {
     require_eq!(
         ctx.accounts.stake_details.asset_a,
         ctx.accounts.asset_a.key(),

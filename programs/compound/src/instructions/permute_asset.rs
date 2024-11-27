@@ -21,6 +21,7 @@ pub struct PermuteAsset<'info> {
         mut,
         seeds = [VAULT_SEED],
         bump = vault.bump,
+        has_one = reward_mint,
     )]
     pub vault: Account<'info, Vault>,
     #[account(
@@ -31,11 +32,7 @@ pub struct PermuteAsset<'info> {
     pub permute_asset: Account<'info, BaseAssetV1>,
     #[account(mut)]
     pub permute_asset_collection: Account<'info, BaseCollectionV1>,
-    #[account(
-        mut,
-        seeds = [ REWARD_MINT_SEED ],
-        bump
-    )]
+    #[account(mut)]
     pub reward_mint: InterfaceAccount<'info, Mint>,
     #[account(
         mut,
