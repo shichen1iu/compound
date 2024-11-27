@@ -26,4 +26,6 @@ pub enum CompoundError {
     PermuteAssetCurrentCurrencyTooHigh,
     #[msg("Permute asset too early , it must be at least 30 days")]
     PermuteAssetTooEarly,
+    #[msg("Invalid price")]
+    InvalidPrice,
 }

@@ -53,4 +53,8 @@ pub mod compound {
     ) -> Result<()> {
         process_permute_asset(ctx, permute_asset_total_currency, create_time)
     }
+
+    pub fn sale_asset(ctx: Context<SaleAsset>, price: u64) -> Result<()> {
+        process_sale_asset(ctx, price)
+    }
 }

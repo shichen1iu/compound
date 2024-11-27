@@ -59,6 +59,7 @@ pub fn process_sale_asset(ctx: Context<SaleAsset>, price: u64) -> Result<()> {
         current_owner: ctx.accounts.owner.key(),
         current_price: price,
         listed_at: Clock::get()?.unix_timestamp,
+        bump: ctx.bumps.sale_list,
     };
     Ok(())
 }
