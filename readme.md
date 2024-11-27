@@ -20,6 +20,7 @@ However, there are two requirements for this:
 1. The current NFT circulation < 2/3 of the total circulation of that NFT collection (due to users performing compound operations, reducing the NFT circulation)
 2. The NFT must have been issued for > 30 days
 This operation can only be performed when both requirements are met simultaneously.
+
 ![Pasted image 20241127172224](https://github.com/user-attachments/assets/c6d47c1c-c488-4a1e-b3bd-34ea787a1f0e)
 
 Additionally, the reward token $CPG can be used to purchase all subsequent NFTs issued by Compound.
