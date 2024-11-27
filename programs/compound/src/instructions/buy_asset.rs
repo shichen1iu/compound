@@ -36,6 +36,7 @@ pub struct BuyAsset<'info> {
     pub buy_asset: Account<'info, BaseAssetV1>,
     #[account(mut)]
     pub sale_asset_collection: Account<'info, BaseCollectionV1>,
+    /// CHECK: this account is checked by the has_one constraint
     pub current_owner: AccountInfo<'info>,
     #[account(mut)]
     pub buyer: Signer<'info>,

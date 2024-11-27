@@ -281,7 +281,7 @@ describe("compound", () => {
 
       it("should fail to unstake after 5 days", async () => {
         const unstakeAssetTx = await program.methods
-          .unstake()
+          .unstakeAsset()
           .accounts({
             staker: stakerKeypair.publicKey,
             assetA: assetAPublicKey,
@@ -323,7 +323,7 @@ describe("compound", () => {
           );
 
         const unstakeAssetIx = await program.methods
-          .unstake()
+          .unstakeAsset()
           .accounts({
             staker: stakerKeypair.publicKey,
             assetA: assetAPublicKey,
@@ -342,10 +342,25 @@ describe("compound", () => {
         const simRes = await client.simulateTransaction(unstakeAssetTx);
         const Transactionmeta = await client.processTransaction(unstakeAssetTx);
 
-        const assetAInfo = await program.account.baseAssetV1.fetch(
-          assetAPublicKey
-        );
-        console.log("assetAInfo owner:", assetAInfo.owner.toString());
+        // const assetAInfo = await program.account.baseAssetV1.fetch(
+        //   assetAPublicKey
+        // );
+        // console.log("assetAInfo owner:", assetAInfo.owner.toString());
+      });
+
+      it("permute asset", async () => {
+        let currentClock = await client.getClock();
+        let permuteAssetCreateTime =
+          currentClock.epochStartTimestamp - BigInt(40 * 24 * 60 * 60);
+        const permuteAssetTx = await program.methods
+          .permuteAsset(1000, new BN(permuteAssetCreateTime.toString()))
+          .accounts({
+            permuteAsset: assetAPublicKey,
+            permuteAssetCollection: collectionAPublicKey,
+            owner: stakerKeypair.publicKey,
+          })
+          .signers([stakerKeypair])
+          .rpc();
       });
     });
 
