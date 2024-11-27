@@ -79,10 +79,12 @@ $CPG (Compound GO) is the core utility token of our ecosystem:
 - NFT burning
 - Special events and promotions
 - Community incentives
+![Pasted image 20241127172512](https://github.com/user-attachments/assets/e7ecad50-dba5-4fdd-927c-1fa20c8ff580)
 ![image](https://github.com/user-attachments/assets/8e6f81ba-7360-455d-9aa6-125aee2608f7)
 
-
-### Create
-Additionally, the reward token $CPG can be used to purchase all subsequent NFTs issued by Compound.
-![Pasted image 20241127172512](https://github.com/user-attachments/assets/e7ecad50-dba5-4fdd-927c-1fa20c8ff580)
+### Getting Started
+1. Connect your wallet to the Compound platform
+2. Choose your preferred Compound pool
+3. Select NFTs for staking or synthesis
+4. Start earning rewards through your preferred strategy
 
