@@ -2,7 +2,7 @@
 Compound: This is a protocol focused on NFT staking and trading. We have multiple Compound pools.
 ![Pasted image 20241127171302](https://github.com/user-attachments/assets/cb46edf6-3592-4670-9149-6537ba17c370)
 
-### Synthesis
+### Compound
 Through Compound, you can convert two staked NFTs into a rarer Compound NFT.
 Like this:
 ![Pasted image 20241127170545](https://github.com/user-attachments/assets/359e7182-95b4-4c09-ab3c-73fa20e50426)
@@ -23,6 +23,12 @@ This operation can only be performed when both requirements are met simultaneous
 
 ![Pasted image 20241127172224](https://github.com/user-attachments/assets/c6d47c1c-c488-4a1e-b3bd-34ea787a1f0e)
 
+### Buy
+You can also buy the nfts
+![image](https://github.com/user-attachments/assets/8e6f81ba-7360-455d-9aa6-125aee2608f7)
+
+
+### Create
 Additionally, the reward token $CPG can be used to purchase all subsequent NFTs issued by Compound.
 ![Pasted image 20241127172512](https://github.com/user-attachments/assets/e7ecad50-dba5-4fdd-927c-1fa20c8ff580)
 
